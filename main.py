@@ -17,6 +17,9 @@ GPIO.setmode(GPIO.BOARD)  # Use GPIO.BCM if you are using BCM numbering
 lcd = CharLCD(cols=16, rows=2, pin_rs=37, pin_e=35, pins_data=[33, 31, 29, 23], numbering_mode=GPIO.BOARD)
 lcd.cursor_mode = 'blink'
 
+# set the current state!
+current_state = "hello"
+
 # creating list
 menu_array = []
   
@@ -35,52 +38,86 @@ def helloWorld():
 	lcd.write_string(u'Welcome to SOUL!')
 	lcd.cursor_pos = (1,0)  # Row 1 (second row), column 3 (fourth character position)
 	lcd.write_string(u'hi :)')
+
+def changeState(state):
+	match state:
+		case "hello":
+			helloWorld()
+		case "menu":
+			setMenu()
+		case "modify":
+			setModify()
 	
 def nextItem():
+	match current_state:
+		case "menu":
+			global menu_num
+			global in_menu
+			
+			# Update menu number
+			if in_menu:
+				menu_num = menu_num + 1
+				if menu_num >= len(menu_array):
+					menu_num = 0
+			else:
+				menu_num = 0
+				in_menu = True
+			print('Menu number: ' + str(menu_num))
+				
+			setMenuLine(menu_num)
+			
+def setMenu():
 	global menu_num
 	global in_menu
+	global current_state
 	
-	# Update menu number
-	if in_menu:
-		menu_num = menu_num + 1
-		if menu_num >= len(menu_array):
-			menu_num = 0
-	else:
-		menu_num = 0
-		in_menu = True
+	# Reset menu number
+	menu_num = 0
+	in_menu = True
+	current_state = "menu"
+	
 	print('Menu number: ' + str(menu_num))
 		
 	# Update LCD
-	if menu_num % 2 == 0:
+	setMenuLine(0)
+
+def setMenuLine(line_num):
+	if line_num % 2 == 0:
 		# Update with menu_array
 		lcd.clear()
 		for i in range(2):
 			lcd.cursor_pos = (i,0)
-			effect = menu_array[menu_num + i]
+			effect = menu_array[line_num + i]
 			menu_line = effect.getName() + ' '*(15 - len(effect.getName())) + 'Y'
-			print(menu_line)
 			lcd.write_string(menu_line)
 		
 		lcd.cursor_pos = (0,0)
 	else:
 		lcd.cursor_pos = (1,0)
 
+#def setModify()
+
 def applyEffects(audioFile):
 	with AudioStream(
   		input_device_name="Apogee Jam+",  # Guitar interface
   		output_device_name="MacBook Pro Speakers"
 	) as stream:
-  	# Audio is now streaming through this pedalboard and out of your speakers!
-  	stream.plugins = Pedalboard([
-      		Compressor(threshold_db=-50, ratio=25),
-      		Gain(gain_db=30),
-  	])
-	board.append(Chorus(gain_db=10))
-	board.append(Delay(gain_db=10))
-	board.append(Phasor(gain_db=10))
-	board.append(Reverb(room_size=0.25))
-
-	
+		# Audio is now streaming through this pedalboard and out of your speakers!
+		stream.plugins = Pedalboard([
+		Compressor(threshold_db=-50, ratio=25),
+		])
+		
+		for effect in menu_array:
+			if effect.getEnable():
+				match effect.getName():
+					case "Chorus":
+						board.append(Chorus(gain_db=effect.getGain()))
+					case "Delay":
+						board.append(Delay(gain_db=effect.getGain()))
+					case "Phasor":
+						board.append(Phasor(gain_db=effect.getGain()))
+					case "Reverb":
+						board.append(Reverb(gain_db=effect.getGain()))
 		
 def selectItem():
 	lcd.clear()
@@ -89,14 +126,17 @@ def selectItem():
 	global menu_num
 	selected = menu_array[menu_num]
 	in_menu = False
-	lcd.write_string('Selected ' + selected)
+	lcd.write_string('Selected ' + selected.getName()) 
+	selected.getEnabled()
 
 # Program ==============================================================
 helloWorld()
 time.sleep(2)
-menu_num = -1
-in_menu = True;
-nextItem()
+setMenu()
+
+#menu_num = -1
+#in_menu = True;
+#nextItem()
 
 # next_button.wait_for_press()
 # lcd.write_string('You pushed me')

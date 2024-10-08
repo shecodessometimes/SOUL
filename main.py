@@ -2,6 +2,8 @@ import time
 from gpiozero import Button
 from RPLCD.gpio import CharLCD  # Ensure you're using the GPIO version of CharLCD
 import RPi.GPIO as GPIO
+from pedalboard import Pedalboard, Reverb, load_plugin
+from pedalboard.io import AudioFile
 from Effect import Effect
 
 # Initialize ===========================================================
@@ -19,7 +21,8 @@ lcd.cursor_mode = 'blink'
 menu_array = []
   
 # using list comprehension to append instances to list
-menu_array += [Effect(name) for name in ["Chord", "Crunch", "Delay", "Reverb", "Slowed", "Loop"]]
+# menu_array += [Effect(name) for name in ["Chord", "Crunch", "Delay", "Reverb", "Slowed", "Loop"]]
+menu_array += [Effect(name) for name in ["Chorus", "Delay", "Phasor", "Reverb"]]
   
 ## if menu_array has an odd number of items, hahaha, it doesn't :)
 #if len(menu_array) % 2 == 1:
@@ -61,6 +64,23 @@ def nextItem():
 		lcd.cursor_pos = (0,0)
 	else:
 		lcd.cursor_pos = (1,0)
+
+def applyEffects(audioFile):
+	with AudioStream(
+  		input_device_name="Apogee Jam+",  # Guitar interface
+  		output_device_name="MacBook Pro Speakers"
+	) as stream:
+  	# Audio is now streaming through this pedalboard and out of your speakers!
+  	stream.plugins = Pedalboard([
+      		Compressor(threshold_db=-50, ratio=25),
+      		Gain(gain_db=30),
+  	])
+	board.append(Chorus(gain_db=10))
+	board.append(Delay(gain_db=10))
+	board.append(Phasor(gain_db=10))
+	board.append(Reverb(room_size=0.25))
+
+	
 		
 def selectItem():
 	lcd.clear()

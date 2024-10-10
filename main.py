@@ -20,35 +20,26 @@ lcd.cursor_mode = 'blink'
 # set the current state!
 current_state = "hello"
 
-# creating list
-menu_array = []
-  
-# using list comprehension to append instances to list
+# Create lists
+# To definitely do: delay, looping, reverb
 # menu_array += [Effect(name) for name in ["Chord", "Crunch", "Delay", "Reverb", "Slowed", "Loop"]]
-menu_array += [Effect(name) for name in ["Chorus", "Delay", "Phasor", "Reverb"]]
+effects_array = [Effect(name) for name in ["Chorus", "Delay", "Phasor"]]
+
+menu_array = [effect.getName() for effect in effects_array]
+menu_array.append("Try sine wave")
+
+
+modify_array = []
+
+modify_num = 0
   
 ## if menu_array has an odd number of items, hahaha, it doesn't :)
 #if len(menu_array) % 2 == 1:
 #	menu_array.append("")
 
 # Functions ============================================================
-def helloWorld():
-	# Write "Hello world!" to the second row, fourth column
-	lcd.cursor_pos = (0,0)  # Row 1 (second row), column 3 (fourth character position)
-	lcd.write_string(u'Welcome to SOUL!')
-	lcd.cursor_pos = (1,0)  # Row 1 (second row), column 3 (fourth character position)
-	lcd.write_string(u'hi :)')
-
-def changeState(state):
-	match state:
-		case "hello":
-			helloWorld()
-		case "menu":
-			setMenu()
-		case "modify":
-			setModify()
-	
 def nextItem():
+	time.sleep(0.5)
 	match current_state:
 		case "menu":
 			global menu_num
@@ -64,7 +55,62 @@ def nextItem():
 				in_menu = True
 			print('Menu number: ' + str(menu_num))
 				
-			setMenuLine(menu_num)
+			setLCDLine(menu_array, menu_num)
+		case "modify":
+			global modify_num
+			modify_num = modify_num + 1
+			if modify_num >= len(modify_array):
+				modify_num = 0
+			setLCDLine(modify_array, modify_num)
+			
+			
+def selectItem():
+	time.sleep(0.5)
+	global current_state
+	match current_state:
+		case "menu":
+			global in_menu
+			global menu_num
+			effect = menu_array[menu_num]
+			if isEffect(effect):
+				changeState("modify", effect) # Change the state
+			else:
+				print("In else! Yay!")
+				#play effect
+		case "modify":
+			global modify_array
+			if modify_array[modify_num] == "Enabled":
+				print("Disabled")
+				modify_array[modify_num] = "Disabled"
+				setLCDLine(modify_array, modify_num)
+			elif modify_array[modify_num] == "Disabled":
+				print("Enabled")
+				modify_array[modify_num] = "Enabled"
+				setLCDLine(modify_array, modify_num)
+			elif lower(modify_array[modify_num]) == "quit" || lower(modify_array[modify_num]) == "back":
+				print("back")
+				changeState("menu")
+			
+def changeState(state, info_str):
+	match state:
+		case "hello":
+			setHello()
+		case "menu":
+			setMenu()
+		case "modify":
+			global current_state
+			global in_menu
+			current_state = "modify"
+			in_menu = False
+			
+			setModify(info_str)
+			
+def setHello():
+	# Write "Hello world!" to the second row, fourth column
+	lcd.cursor_pos = (0,0)  # Row 1 (second row), column 3 (fourth character position)
+	lcd.write_string(u'Welcome to SOUL!')
+	lcd.cursor_pos = (1,0)  # Row 1 (second row), column 3 (fourth character position)
+	lcd.write_string(u'hi :)')
 			
 def setMenu():
 	global menu_num
@@ -79,23 +125,79 @@ def setMenu():
 	print('Menu number: ' + str(menu_num))
 		
 	# Update LCD
-	setMenuLine(0)
+	setLCDLine(menu_array, 0)
 
-def setMenuLine(line_num):
-	if line_num % 2 == 0:
-		# Update with menu_array
-		lcd.clear()
-		for i in range(2):
-			lcd.cursor_pos = (i,0)
-			effect = menu_array[line_num + i]
-			menu_line = effect.getName() + ' '*(15 - len(effect.getName())) + 'Y'
-			lcd.write_string(menu_line)
-		
-		lcd.cursor_pos = (0,0)
+def setLCDLine(lines_array, line_num):
+	top_line = line_num
+	if line_num % 2 == 1:
+		top_line = line_num - 1
+	
+	# Redraw array
+	lcd.clear()
+	for i in range(2):
+		lcd.cursor_pos = (i,0)
+		print(lines_array)
+		print(line_num)
+		print(i)
+		effect = lines_array[top_line + i]
+		if isEffect(effect):
+			effect_obj = getEffectObj(effect)
+			if effect_obj.getEnable:
+				line = effect + ' '*(15 - len(effect)) + 'Y'
+			else:
+				line = effect + ' '*(15 - len(effect)) + 'N'
+		else:
+			line = effect
+		lcd.write_string(line)
+	
+	lcd.cursor_pos = ((line_num % 2),0)
+
+def setModify(effect_name):
+	# Find the effects object
+	effect_obj = getEffectObj(effect_name)
+	
+	# Update the modify_array (will be displayed on LCD)
+	global modify_array
+	modify_array = []
+	modify_array.append("Modify " + effect_obj.getName())
+	if effect_obj.getEnable():
+		modify_array.append("Enabled")
 	else:
-		lcd.cursor_pos = (1,0)
+		modify_array.append("Disabled")
+	modify_array.append("back")
+	modify_array.append("")
+	
+	print("modify array:")
+	print(modify_array)
+	
+	# Update LCD
+	setLCDLine(modify_array, 0)
 
-#def setModify()
+def isEffect(effect_name):
+	i = 0
+	while i < len(effects_array) and effects_array[i].getName() != effect_name:
+		print(effects_array[i].getName())
+		print(effect_name)
+		print(i)
+		i = i + 1
+	
+	if i >= len(effects_array):
+		return False
+	else:
+		return True
+	
+def getEffectObj(effect_name):
+	i = 0
+	while i < len(effects_array) and effects_array[i].getName() != effect_name:
+		print(effects_array[i].getName())
+		print(effect_name)
+		print(i)
+		i = i + 1
+	
+	#if i >= len(effects_array):
+	#	return null
+	
+	return effects_array[i]
 
 def applyEffects(audioFile):
 	with AudioStream(
@@ -108,7 +210,7 @@ def applyEffects(audioFile):
 		])
 		
 		for effect in menu_array:
-			if effect.getEnable():
+			if effect.getEnabled():
 				match effect.getName():
 					case "Chorus":
 						board.append(Chorus(gain_db=effect.getGain()))
@@ -118,19 +220,11 @@ def applyEffects(audioFile):
 						board.append(Phasor(gain_db=effect.getGain()))
 					case "Reverb":
 						board.append(Reverb(gain_db=effect.getGain()))
+				
 		
-def selectItem():
-	lcd.clear()
-	
-	global in_menu
-	global menu_num
-	selected = menu_array[menu_num]
-	in_menu = False
-	lcd.write_string('Selected ' + selected.getName()) 
-	selected.getEnabled()
 
 # Program ==============================================================
-helloWorld()
+changeState("hello", "hi :)")
 time.sleep(2)
 setMenu()
 

@@ -19,6 +19,7 @@ lcd.cursor_mode = 'blink'
 
 # set the current state!
 current_state = "hello"
+button_pressing = 0
 
 # Create lists
 # To definitely do: delay, looping, reverb
@@ -39,57 +40,66 @@ modify_num = 0
 
 # Functions ============================================================
 def nextItem():
-	time.sleep(0.5)
-	match current_state:
-		case "menu":
-			global menu_num
-			global in_menu
-			
-			# Update menu number
-			if in_menu:
-				menu_num = menu_num + 1
-				if menu_num >= len(menu_array):
-					menu_num = 0
-			else:
-				menu_num = 0
-				in_menu = True
-			print('Menu number: ' + str(menu_num))
+	global button_pressing
+	button_pressing = button_pressing + 1
+	if button_pressing == 1:
+		match current_state:
+			case "menu":
+				global menu_num
+				global in_menu
 				
-			setLCDLine(menu_array, menu_num)
-		case "modify":
-			global modify_num
-			modify_num = modify_num + 1
-			if modify_num >= len(modify_array):
-				modify_num = 0
-			setLCDLine(modify_array, modify_num)
+				# Update menu number
+				if in_menu:
+					menu_num = menu_num + 1
+					if menu_num >= len(menu_array):
+						menu_num = 0
+				else:
+					menu_num = 0
+					in_menu = True
+				print('Menu number: ' + str(menu_num))
+					
+				setLCDLine(menu_array, menu_num)
+			case "modify":
+				global modify_num
+				modify_num = modify_num + 1
+				if modify_num >= len(modify_array):
+					modify_num = 0
+				setLCDLine(modify_array, modify_num)
+		button_pressing = 0
 			
 			
 def selectItem():
-	time.sleep(0.5)
-	global current_state
-	match current_state:
-		case "menu":
-			global in_menu
-			global menu_num
-			effect = menu_array[menu_num]
-			if isEffect(effect):
-				changeState("modify", effect) # Change the state
-			else:
-				print("In else! Yay!")
-				#play effect
-		case "modify":
-			global modify_array
-			if modify_array[modify_num] == "Enabled":
-				effects_array[menu_num].setEnable(False)
-				modify_array[modify_num] = "Disabled"
-				setLCDLine(modify_array, modify_num)
-			elif modify_array[modify_num] == "Disabled":
-				effects_array[menu_num].setEnable(True)
-				modify_array[modify_num] = "Enabled"
-				setLCDLine(modify_array, modify_num)
-			elif modify_array[modify_num].lower() == "quit" or modify_array[modify_num].lower() == "back":
-				print("back")
-				changeState("menu", "quit")
+	global button_pressing
+	button_pressing = button_pressing + 1
+	if button_pressing == 1:
+		global current_state
+		match current_state:
+			case "menu":
+				global in_menu
+				global menu_num
+				effect = menu_array[menu_num]
+				if isEffect(effect):
+					changeState("modify", effect) # Change the state
+				elif effect == "Try sine wave"
+					applyEffects("sine.wav")
+				else:
+					print("In else! Yay!")
+					#play effect
+			case "modify":
+				global modify_array
+				match modify_array[modify_num]:
+					case "Enabled":
+						effects_array[menu_num].setEnable(False)
+						modify_array[modify_num] = "Disabled"
+						setLCDLine(modify_array, modify_num)
+					case "Disabled":
+						effects_array[menu_num].setEnable(True)
+						modify_array[modify_num] = "Enabled"
+						setLCDLine(modify_array, modify_num)
+					case "quit" or "back"
+						changeState("menu", "quit")
+		time.sleep(1)
+		button_pressing = 0
 			
 def changeState(state, info_str):
 	match state:
@@ -143,9 +153,9 @@ def setLCDLine(lines_array, line_num):
 		if isEffect(effect):
 			effect_obj = getEffectObj(effect)
 			if effect_obj.getEnable():
-				line = effect + ' '*(15 - len(effect)) + 'Y'
+				line = effect + ' '*(14 - len(effect)) + 'on'
 			else:
-				line = effect + ' '*(15 - len(effect)) + 'N'
+				line = effect + ' '*(13 - len(effect)) + 'off'
 		else:
 			line = effect
 		lcd.write_string(line)
@@ -220,6 +230,7 @@ def applyEffects(audioFile):
 						board.append(Phasor(gain_db=effect.getGain()))
 					case "Reverb":
 						board.append(Reverb(gain_db=effect.getGain()))
+	
 				
 		
 

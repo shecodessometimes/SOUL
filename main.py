@@ -2,7 +2,7 @@ import time
 from gpiozero import Button
 from RPLCD.gpio import CharLCD  # Ensure you're using the GPIO version of CharLCD
 import RPi.GPIO as GPIO
-from pedalboard import Pedalboard, Reverb, load_plugin
+from pedalboard import Pedalboard, Compressor, Chorus, Delay, Reverb, load_plugin
 from pedalboard.io import AudioFile
 from Effect import Effect
 
@@ -24,15 +24,18 @@ button_pressing = 0
 # Create lists
 # To definitely do: delay, looping, reverb
 # menu_array += [Effect(name) for name in ["Chord", "Crunch", "Delay", "Reverb", "Slowed", "Loop"]]
-effects_array = [Effect(name) for name in ["Chorus", "Delay", "Phasor"]]
+effects_array = [Effect(name) for name in ["Chorus", "Delay", "Reverb"]]
 
 menu_array = [effect.getName() for effect in effects_array]
 menu_array.append("Try sine wave")
 
 
 modify_array = []
-
 modify_num = 0
+
+effects_board = Pedalboard([
+	Compressor(threshold_db=-50, ratio=25),
+	])
   
 ## if menu_array has an odd number of items, hahaha, it doesn't :)
 #if len(menu_array) % 2 == 1:
@@ -80,23 +83,25 @@ def selectItem():
 				effect = menu_array[menu_num]
 				if isEffect(effect):
 					changeState("modify", effect) # Change the state
-				elif effect == "Try sine wave"
-					applyEffects("sine.wav")
+				elif effect == "Try sine wave":
+					applyEffects("sine.wav", effects_board)
 				else:
 					print("In else! Yay!")
 					#play effect
 			case "modify":
 				global modify_array
 				match modify_array[modify_num]:
-					case "Enabled":
+					case "enabled":
 						effects_array[menu_num].setEnable(False)
-						modify_array[modify_num] = "Disabled"
+						modify_array[modify_num] = "disabled"
 						setLCDLine(modify_array, modify_num)
-					case "Disabled":
+						updateBoard()
+					case "disabled":
 						effects_array[menu_num].setEnable(True)
-						modify_array[modify_num] = "Enabled"
+						modify_array[modify_num] = "enabled"
 						setLCDLine(modify_array, modify_num)
-					case "quit" or "back"
+						updateBoard()
+					case "quit" | "back":
 						changeState("menu", "quit")
 		time.sleep(1)
 		button_pressing = 0
@@ -171,11 +176,21 @@ def setModify(effect_name):
 	modify_array = []
 	modify_array.append("Modify " + effect_obj.getName())
 	if effect_obj.getEnable():
-		modify_array.append("Enabled")
+		modify_array.append("enabled")
 	else:
-		modify_array.append("Disabled")
+		modify_array.append("disabled")
+	
+	# Write all possible parameter names and values
+	param_num = len(effect_obj.getParamNames())
+	
+	for i in range(param_num):
+		param_name = effect_obj.getParamNameAt(i)
+		param_val = effect_obj.getParamValueAt(i)
+		modify_array.append(param_name + ' '*(16 - len(param_name) - len(str(param_val))) + str(param_val))
+	
 	modify_array.append("back")
-	modify_array.append("")
+	if param_num % 2 == 0:
+		modify_array.append("")
 	
 	print("modify array:")
 	print(modify_array)
@@ -204,34 +219,53 @@ def getEffectObj(effect_name):
 		print(i)
 		i = i + 1
 	
-	#if i >= len(effects_array):
-	#	return null
-	
 	return effects_array[i]
 
-def applyEffects(audioFile):
-	with AudioStream(
-  		input_device_name="Apogee Jam+",  # Guitar interface
-  		output_device_name="MacBook Pro Speakers"
-	) as stream:
-		# Audio is now streaming through this pedalboard and out of your speakers!
-		stream.plugins = Pedalboard([
-		Compressor(threshold_db=-50, ratio=25),
-		])
-		
-		for effect in menu_array:
-			if effect.getEnabled():
-				match effect.getName():
-					case "Chorus":
-						board.append(Chorus(gain_db=effect.getGain()))
-					case "Delay":
-						board.append(Delay(gain_db=effect.getGain()))
-					case "Phasor":
-						board.append(Phasor(gain_db=effect.getGain()))
-					case "Reverb":
-						board.append(Reverb(gain_db=effect.getGain()))
+def updateBoard():
+	global effects_board
+	effects_board = Pedalboard([
+	Compressor(threshold_db=-50, ratio=25),
+	])
 	
-				
+	effect_num = 1
+	
+	for effect in effects_array:
+		if effect.getEnable():
+			match effect.getName():
+				case "Chorus":
+					effects_board.append(Chorus())
+				case "Delay":
+					effects_board.append(Delay())
+				case "Phasor":
+					effects_board.append(Phasor())
+				case "Reverb":
+					effects_board.append(Reverb())
+			
+			for param_i in range(len(effect.getParamNames())):
+				param_name = effect.getParamNameAt(param_i)
+				param_val = effect.getParamValueAt(param_i)
+				effects_board[effect_num]
+				exec("effects_board[effect_num]." + param_name + " = " + str(param_val))
+			effect_num = effect_num + 1
+
+def applyEffects(audio_file, board):
+	samplerate = 44100.0
+	with AudioFile(audio_file).resampled_to(samplerate) as f:
+		audio_in = f.read(f.frames)
+	
+	audio_out = board(audio_in, samplerate)
+	
+	with AudioFile('processed-output.wav', 'w', samplerate, effected.shape[0]) as f:
+		f.write(effected)
+	
+	return audio_out
+						
+# def streamEffects(audioFile):
+# 	with AudioStream(
+#   		input_device_name="Apogee Jam+",  # Guitar interface
+#   		output_device_name="MacBook Pro Speakers"
+# 	) as stream:
+# 		# Audio is now streaming through this pedalboard and out of your speakers!		
 		
 
 # Program ==============================================================

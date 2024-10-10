@@ -23,4 +23,4 @@ y = maxint16 * y / m
 # You have to convert to int16, else doesn't work
 y = y.astype(np.int16) 
 
-wavfile.write('Sine.wav', sampleRate, y)
+wavfile.write('sine.wav', sampleRate, y)

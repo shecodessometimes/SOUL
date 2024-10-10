@@ -80,16 +80,16 @@ def selectItem():
 		case "modify":
 			global modify_array
 			if modify_array[modify_num] == "Enabled":
-				print("Disabled")
+				effects_array[menu_num].setEnable(False)
 				modify_array[modify_num] = "Disabled"
 				setLCDLine(modify_array, modify_num)
 			elif modify_array[modify_num] == "Disabled":
-				print("Enabled")
+				effects_array[menu_num].setEnable(True)
 				modify_array[modify_num] = "Enabled"
 				setLCDLine(modify_array, modify_num)
-			elif lower(modify_array[modify_num]) == "quit" || lower(modify_array[modify_num]) == "back":
+			elif modify_array[modify_num].lower() == "quit" or modify_array[modify_num].lower() == "back":
 				print("back")
-				changeState("menu")
+				changeState("menu", "quit")
 			
 def changeState(state, info_str):
 	match state:
@@ -142,7 +142,7 @@ def setLCDLine(lines_array, line_num):
 		effect = lines_array[top_line + i]
 		if isEffect(effect):
 			effect_obj = getEffectObj(effect)
-			if effect_obj.getEnable:
+			if effect_obj.getEnable():
 				line = effect + ' '*(15 - len(effect)) + 'Y'
 			else:
 				line = effect + ' '*(15 - len(effect)) + 'N'

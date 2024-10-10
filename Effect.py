@@ -7,8 +7,8 @@ class Effect:
 	def __str__(self):
 		return f"{self.name}"
 	
-	def toggleEnable(self, enable):
-		self.enabled = enable
+	def setEnable(self, new_enable):
+		self.enabled = new_enable
 		
 	def getEnable(self):
 		return self.enabled

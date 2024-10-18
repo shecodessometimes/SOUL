@@ -14,6 +14,9 @@ class Effect:
 			case "Reverb":
 				self.param_names = ["room_size", "damping", "wet_level", "dry_level", "width", "freeze_mode"]
 				self.param_values = [0.5, 0.5, 0.33, 0.4, 1.0, 0.0]
+			case "Compressor":
+				self.param_names = ["threshold_db", "ratio"]
+				self.param_values = [-3, 3]
 		
 	def __str__(self):
 		return f"{self.name}"

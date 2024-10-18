@@ -2,7 +2,7 @@ import time
 from gpiozero import Button
 from RPLCD.gpio import CharLCD  # Ensure you're using the GPIO version of CharLCD
 import RPi.GPIO as GPIO
-from pedalboard import Pedalboard, Compressor, Chorus, Delay, Reverb, load_plugin
+from pedalboard import Pedalboard, Compressor, Chorus, Delay, Reverb, load_plugin, Gain
 from pedalboard.io import AudioFile
 from Effect import Effect
 
@@ -24,17 +24,19 @@ button_pressing = 0
 # Create lists
 # To definitely do: delay, looping, reverb
 # menu_array += [Effect(name) for name in ["Chord", "Crunch", "Delay", "Reverb", "Slowed", "Loop"]]
-effects_array = [Effect(name) for name in ["Chorus", "Delay", "Reverb"]]
+effects_array = [Effect(name) for name in ["Chorus", "Delay", "Reverb", "Compressor"]]
 
 menu_array = [effect.getName() for effect in effects_array]
 menu_array.append("Try sine wave")
+menu_array.append("Try music")
 
 
 modify_array = []
 modify_num = 0
 
 effects_board = Pedalboard([
-	Compressor(threshold_db=-50, ratio=25),
+	# Compressor(threshold_db=-50, ratio=25),
+	# Compressor(threshold_db=-3, ratio=5),
 	])
   
 ## if menu_array has an odd number of items, hahaha, it doesn't :)
@@ -85,6 +87,8 @@ def selectItem():
 					changeState("modify", effect) # Change the state
 				elif effect == "Try sine wave":
 					applyEffects("sine.wav", effects_board)
+				elif effect == "Try music":
+					applyEffects("emily.wav", effects_board)
 				else:
 					print("In else! Yay!")
 					#play effect
@@ -224,7 +228,7 @@ def getEffectObj(effect_name):
 def updateBoard():
 	global effects_board
 	effects_board = Pedalboard([
-	Compressor(threshold_db=-50, ratio=25),
+	Gain(gain_db=0),
 	])
 	
 	effect_num = 1
@@ -240,6 +244,8 @@ def updateBoard():
 					effects_board.append(Phasor())
 				case "Reverb":
 					effects_board.append(Reverb())
+				case "Compressor":
+					effects_board.append(Compressor())
 			
 			for param_i in range(len(effect.getParamNames())):
 				param_name = effect.getParamNameAt(param_i)
@@ -254,9 +260,14 @@ def applyEffects(audio_file, board):
 		audio_in = f.read(f.frames)
 	
 	audio_out = board(audio_in, samplerate)
+	audio_out_file = audio_file[:audio_file.find('.')] + 'processed-output' + str(time.time()) + '.wav'
+	print("audio in:")
+	print(audio_in[0:20])
+	print("\naudio out:")
+	print(audio_out[0:20])
 	
-	with AudioFile('processed-output.wav', 'w', samplerate, effected.shape[0]) as f:
-		f.write(effected)
+	with AudioFile(audio_out_file, 'w', samplerate, audio_out.shape[0]) as f:
+		f.write(audio_out)
 	
 	return audio_out
 						

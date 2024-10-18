@@ -5,6 +5,9 @@ import RPi.GPIO as GPIO
 from pedalboard import Pedalboard, Compressor, Chorus, Delay, Reverb, load_plugin, Gain
 from pedalboard.io import AudioFile
 from Effect import Effect
+#from playsound import playsound
+import pygame
+
 
 # Initialize ===========================================================
 next_button = Button(2); # next-button connected to GPIO2
@@ -261,13 +264,16 @@ def applyEffects(audio_file, board):
 	
 	audio_out = board(audio_in, samplerate)
 	audio_out_file = audio_file[:audio_file.find('.')] + 'processed-output' + str(time.time()) + '.wav'
-	print("audio in:")
-	print(audio_in[0:20])
-	print("\naudio out:")
-	print(audio_out[0:20])
-	
+
 	with AudioFile(audio_out_file, 'w', samplerate, audio_out.shape[0]) as f:
 		f.write(audio_out)
+		
+	# for playing note.wav file
+	pygame.mixer.init()
+	pygame.mixer.music.load(audio_out_file)
+	pygame.mixer.music.play()
+	# print('playing sound using  playsound')
+	# playsound(audio_out_file)
 	
 	return audio_out
 						
@@ -290,6 +296,7 @@ setMenu()
 
 # next_button.wait_for_press()
 # lcd.write_string('You pushed me')
+
 
 num = 0
 

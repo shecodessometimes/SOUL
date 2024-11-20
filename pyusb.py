@@ -1,6 +1,16 @@
 import usb.core
 import usb.util
 import time
+import sounddevice as sd
+
+# Using sounddevice
+input_devices = sd.query_devices(kind = "input")
+print("Input Devices")
+print(input_devices.get("name"))
+
+output_devices = sd.query_devices(kind = "output")
+print("Output Devices")
+print(output_devices.get("name"))
 
 # Print all USB device ids ---------------------------------------------
 # Find all USB devices

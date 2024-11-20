@@ -7,6 +7,7 @@ from pedalboard.io import AudioFile
 from Effect import Effect
 #from playsound import playsound
 import pygame
+import sounddevice as sd
 
 
 # Initialize ===========================================================

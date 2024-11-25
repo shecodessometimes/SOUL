@@ -111,6 +111,19 @@ def selectItem():
 						updateBoard()
 					case "quit" | "back":
 						changeState("menu", "quit")
+						
+				# yes, this is an if/then after a case, but it will work.
+				print('hi')
+				if any(sub in modify_array[modify_num] for sub in effects_array[menu_num].getParamNames()):
+					effects_array[menu_num].nextParamValue(modify_num - 2)
+					effect = menu_array[menu_num]
+					setModify(effect)
+					setLCDLine(modify_array, modify_num)
+					updateBoard()
+					print('updated value')
+				else:
+					print('no sub found')
+					
 		time.sleep(1)
 		button_pressing = 0
 			
@@ -159,9 +172,6 @@ def setLCDLine(lines_array, line_num):
 	lcd.clear()
 	for i in range(2):
 		lcd.cursor_pos = (i,0)
-		print(lines_array)
-		print(line_num)
-		print(i)
 		effect = lines_array[top_line + i]
 		if isEffect(effect):
 			effect_obj = getEffectObj(effect)
@@ -200,18 +210,12 @@ def setModify(effect_name):
 	if param_num % 2 == 0:
 		modify_array.append("")
 	
-	print("modify array:")
-	print(modify_array)
-	
 	# Update LCD
 	setLCDLine(modify_array, 0)
 
 def isEffect(effect_name):
 	i = 0
 	while i < len(effects_array) and effects_array[i].getName() != effect_name:
-		print(effects_array[i].getName())
-		print(effect_name)
-		print(i)
 		i = i + 1
 	
 	if i >= len(effects_array):

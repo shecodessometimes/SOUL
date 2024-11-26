@@ -33,6 +33,7 @@ effects_array = [Effect(name) for name in ["Chorus", "Delay", "Reverb", "Compres
 menu_array = [effect.getName() for effect in effects_array]
 menu_array.append("Try sine wave")
 menu_array.append("Try music")
+menu_array.append("IO Devices")
 
 
 modify_array = []
@@ -46,6 +47,14 @@ effects_board = Pedalboard([
 ## if menu_array has an odd number of items, hahaha, it doesn't :)
 #if len(menu_array) % 2 == 1:
 #	menu_array.append("")
+
+#io 
+input_devices = sd.query_devices(kind = "input")
+output_devices = sd.query_devices(kind = "output")
+input_devices_i = 0
+output_devices_i = 0
+audiostream_enabled = False
+stream_obj
 
 # Functions ============================================================
 def nextItem():
@@ -93,6 +102,8 @@ def selectItem():
 					applyEffects("sine.wav", effects_board)
 				elif effect == "Try music":
 					applyEffects("emily.wav", effects_board)
+				elif effect == "IO Devices":
+					changeState("modify", "io")
 				else:
 					print("In else! Yay!")
 					#play effect
@@ -107,6 +118,16 @@ def selectItem():
 					case "disabled":
 						effects_array[menu_num].setEnable(True)
 						modify_array[modify_num] = "enabled"
+						setLCDLine(modify_array, modify_num)
+						updateBoard()
+					case neatLine("Audio stream:", "enabled"):
+						audiostream_enabled = False
+						stopAudioStream()					
+						setLCDLine(modify_array, modify_num)
+						updateBoard()
+					case neatLine("Audio stream:", "disabled"):
+						audiostream_enabled = True
+						startAudioStream()
 						setLCDLine(modify_array, modify_num)
 						updateBoard()
 					case "quit" | "back":
@@ -176,9 +197,9 @@ def setLCDLine(lines_array, line_num):
 		if isEffect(effect):
 			effect_obj = getEffectObj(effect)
 			if effect_obj.getEnable():
-				line = effect + ' '*(14 - len(effect)) + 'on'
+				line = neatLine(effect, 'on')
 			else:
-				line = effect + ' '*(13 - len(effect)) + 'off'
+				line = neatLine(effect, 'off')
 		else:
 			line = effect
 		lcd.write_string(line)
@@ -186,32 +207,73 @@ def setLCDLine(lines_array, line_num):
 	lcd.cursor_pos = ((line_num % 2),0)
 
 def setModify(effect_name):
-	# Find the effects object
-	effect_obj = getEffectObj(effect_name)
-	
-	# Update the modify_array (will be displayed on LCD)
-	global modify_array
-	modify_array = []
-	modify_array.append("Modify " + effect_obj.getName())
-	if effect_obj.getEnable():
-		modify_array.append("enabled")
+	if effect_name == "io":
+		global input_devices
+		global output_devices
+		global input_devices_i
+		global output_devices_i
+		
+		# update in/out devices arrays
+		input_devices = sd.query_devices(kind = "input")
+		output_devices = sd.query_devices(kind = "output")
+		
+		modify_array = []
+		modify_array.append("Modify Audio I/O")
+		in_dev = input_devices[input_devices_i]		
+		modify_array.append(neatLine('in', in_dev))
+		out_dev = output_devices[output_devices_i]		
+		modify_array.append(neatLine('out', out_dev))
+		
+		print("Input Devices")
+		print(input_devices.get("name"))
+
+		output_devices = sd.query_devices(kind = "output")
+		print("Output Devices")
+		print(output_devices.get("name"))
+		
+		# enable/disable audiostream
+		if audiostream_enabled:
+			modify_array.append(neatLine("Audio stream:", "enabled"))
+		else:
+			modify_array.append(neatLine("Audio stream:", "disabled"))
+		
+		# quit
+		modify_array.append("back")
+		if param_num % 2 == 0:
+			modify_array.append("")
+			
 	else:
-		modify_array.append("disabled")
-	
-	# Write all possible parameter names and values
-	param_num = len(effect_obj.getParamNames())
-	
-	for i in range(param_num):
-		param_name = effect_obj.getParamNameAt(i)
-		param_val = effect_obj.getParamValueAt(i)
-		modify_array.append(param_name + ' '*(16 - len(param_name) - len(str(param_val))) + str(param_val))
-	
-	modify_array.append("back")
-	if param_num % 2 == 0:
-		modify_array.append("")
+		# Find the effects object
+		effect_obj = getEffectObj(effect_name)
+		
+		# Update the modify_array (will be displayed on LCD)
+		global modify_array
+		modify_array = []
+		modify_array.append("Modify " + effect_obj.getName())
+		if effect_obj.getEnable():
+			modify_array.append("enabled")
+		else:
+			modify_array.append("disabled")
+		
+		# Write all possible parameter names and values
+		param_num = len(effect_obj.getParamNames())
+		
+		for i in range(param_num):
+			param_name = effect_obj.getParamNameAt(i)
+			param_val = effect_obj.getParamValueAt(i)
+			modify_array.append(neatLine(param_name, param_val))
+		
+		modify_array.append("back")
+		if param_num % 2 == 0:
+			modify_array.append("")
 	
 	# Update LCD
 	setLCDLine(modify_array, 0)
+
+def neatLine(item1, item2):
+	char_nums = 16
+	neat_line = str(item1) + ' '*(char_nums - len(item1) - len(str(item2))) + str(item2)
+	return neat_line[:char_nums]
 
 def isEffect(effect_name):
 	i = 0
@@ -281,14 +343,24 @@ def applyEffects(audio_file, board):
 	# playsound(audio_out_file)
 	
 	return audio_out
-						
-# def streamEffects(audioFile):
-# 	with AudioStream(
-#   		input_device_name="Apogee Jam+",  # Guitar interface
-#   		output_device_name="MacBook Pro Speakers"
-# 	) as stream:
-# 		# Audio is now streaming through this pedalboard and out of your speakers!		
-		
+					
+startAudioStream():
+	global input_devices
+	global output_devices
+	global input_devices_i
+	global output_devices_i
+	global stream_obj
+	
+	in_dev = input_devices[input_devices_i]		
+	out_dev = output_devices[output_devices_i]	
+	
+	stream_obj = AudioStream(in_dev, out_dev)
+	stream.plugins = effects_board
+	stream_obj.run()
+	
+stopAudioStream():
+	global stream_obj
+	stream_obj.close()
 
 # Program ==============================================================
 changeState("hello", "hi :)")

@@ -3,6 +3,7 @@ from Effect import Effect
 from pedalboard import Pedalboard, Compressor, Chorus, Delay, Reverb, Gain, load_plugin
 from pedalboard.io import AudioFile, AudioStream
 from IOManager import IOManager
+import time
 
 # from playsound import playsound
 class AudioManager:
@@ -14,13 +15,13 @@ class AudioManager:
 		
 		input_device_name = self.io_manager.getCurrentIO("in")
 		output_device_name = self.io_manager.getCurrentIO("out")
-		self.stream_obj = AudioStream(input_device_name=output_device_name, output_device_name=output_device_name)
+		# self.stream_obj = AudioStream(input_device_name=output_device_name, output_device_name=output_device_name)
 		
-		input_devices
-		output_devices
-		input_devices_i
-		output_devices_i
-		stream_obj
+		# input_devices
+		# output_devices
+		# input_devices_i
+		# output_devices_i
+		# stream_obj
 		
 		self.audiostream_enabled = False
 		
@@ -29,9 +30,23 @@ class AudioManager:
 		
 	def __str__(self):
 		return f"<AudioManager object>"
+	
+	def isEffectParam(self, check_str, effect_index):
+		isParam = any(sub_str in check_str for sub_str in self.effects_array[effect_index].getParamNames())
+		return isParam
+	
+	def nextEffectParam(self, effect_index, param_index):
+		self.effects_array[effect_index].nextParamValue(param_index)
 		
 	def getEffectsArray(self):
 		return self.effects_array
+		
+	def enableDisableEffect(self, effect_num, en_dis):
+		match en_dis:
+			case "enable":
+				self.effects_array[effect_num].setEnable(True)
+			case "disable":
+				self.effects_array[effect_num].setEnable(False)
 		
 	def isEffect(self, effect_name):
 		i = 0
@@ -81,12 +96,12 @@ class AudioManager:
 					exec("self.effects_board[effect_num]." + param_name + " = " + str(param_val))
 				effect_num = effect_num + 1
 
-	def applyEffects(self, audio_file, board):
+	def applyEffects(self, audio_file):
 		samplerate = 44100.0
 		with AudioFile(audio_file).resampled_to(samplerate) as f:
 			audio_in = f.read(f.frames)
 		
-		audio_out = board(audio_in, samplerate)
+		audio_out = self.effects_board(audio_in, samplerate)
 		audio_out_file = audio_file[:audio_file.find('.')] + 'processed-output' + str(time.time()) + '.wav'
 
 		with AudioFile(audio_out_file, 'w', samplerate, audio_out.shape[0]) as f:

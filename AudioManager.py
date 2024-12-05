@@ -2,13 +2,19 @@ import pygame
 from Effect import Effect
 from pedalboard import Pedalboard, Compressor, Chorus, Delay, Reverb, Gain, load_plugin
 from pedalboard.io import AudioFile, AudioStream
+from IOManager import IOManager
+
 # from playsound import playsound
 class AudioManager:
 	def __init__(self, effects_names):
 		self.effects_array = [Effect(name) for name in effects_names]
 		self.effects_board = Pedalboard([])
 		
-		self.stream_obj = AudioStream("default", "default")
+		self.io_manager = IOManager()
+		
+		input_device_name = self.io_manager.getCurrentIO("in")
+		output_device_name = self.io_manager.getCurrentIO("out")
+		self.stream_obj = AudioStream(input_device_name=output_device_name, output_device_name=output_device_name)
 		
 		input_devices
 		output_devices
@@ -16,11 +22,15 @@ class AudioManager:
 		output_devices_i
 		stream_obj
 		
+		self.audiostream_enabled = False
+		
+		print("Successfully initialized the AudioManager")
+		
 		
 	def __str__(self):
 		return f"<AudioManager object>"
 		
-	def getEffectsArray(self, self):
+	def getEffectsArray(self):
 		return self.effects_array
 		
 	def isEffect(self, effect_name):

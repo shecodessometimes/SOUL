@@ -4,11 +4,10 @@ from IOManager import IOManager
 from Effect import Effect
 
 class StateManager:
-	def __init__(self, audio_manager, lcd_manager, io_manager):
+	def __init__(self, audio_manager, lcd_manager):
 		# initialize objects
 		self.audio_manager = audio_manager
 		self.lcd_manager = lcd_manager
-		self.io_manager = io_manager
 		
 		# hello state
 		self.state = "hello"
@@ -27,6 +26,8 @@ class StateManager:
 		# modify state
 		self.modify_array = []
 		self.modify_num = 0
+		
+		print("Successfully initialized the StateManager")
 		
 	def __str__(self):
 		return f"<StateManager object>"

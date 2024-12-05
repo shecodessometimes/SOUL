@@ -3,7 +3,6 @@ from gpiozero import Button
 
 from AudioManager import AudioManager
 from LCDManager import LCDManager
-from IOManager import IOManager
 from Effect import Effect
 
 # Initialize ===========================================================
@@ -22,8 +21,7 @@ effects_list = ["Chorus", "Delay", "Reverb", "Compressor"]
 audio_manager = AudioManager(effects_list)
 lcd_manager = LCDManager(next_button_pin, select_button_pin, rs_pin, enable_pin, 
 				data_4_pin, data_5_pin, data_6_pin, data_7_pin)
-io_manager = IOManager()
-state_manager = StateManager(audio_manager, lcd_manager, io_manager)
+state_manager = StateManager(audio_manager, lcd_manager)
 
 # Buttons
 next_button = Button(3); # next-button connected to GPIO2
